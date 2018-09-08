@@ -7,7 +7,7 @@
 
 //time constants in seconds
 const long MEASUREMENT_INTERVAL   = 60*60;
-const long SLEEP_INTERVAL         = 60;
+const long SLEEP_INTERVAL         = 5*60;
 
 //pin numbers
 #define PIN_DHT           7
