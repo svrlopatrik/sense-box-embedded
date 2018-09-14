@@ -33,18 +33,19 @@ const long SLEEP_INTERVAL         = 5*60;
 #define FILE_EXTENSION        ".DAT"
 #define MEASUREMENT_REPEATS   5
 
-//global variables
-DHT dht(PIN_DHT, TYPE_DHT);
-DS1302RTC RTC(PIN_RTC_RST, PIN_RTC_DAT, PIN_RTC_CLK);
-long lastMeasurement;
-long lastCommunication;
-bool isSleeping;
-
 //structures
 struct BleData {
   int size;
   byte* data;
 };
+
+//global variables
+DHT dht(PIN_DHT, TYPE_DHT);
+DS1302RTC RTC(PIN_RTC_RST, PIN_RTC_DAT, PIN_RTC_CLK);
+long lastMeasurement;
+volatile long lastCommunication;
+volatile bool isSleeping;
+volatile struct BleData bleData;
 
 //declaration of functions
 long getTimestamp();
@@ -72,6 +73,7 @@ void setup() {
 
   //setup global variables
   isSleeping = false;
+  bleData = BleData{0, NULL};
 
   //init RTC module
   Serial.print("Initializing RTC module... ");
@@ -98,10 +100,12 @@ void setup() {
 void loop() {
   long timestamp = getTimestamp();
 
+  //check sleep mode time
   if (!isSleeping && lastCommunication < timestamp) {
     enterBleSleepMode();
   }
-
+ 
+  //check measurement time
   if (lastMeasurement < timestamp) {
     lastMeasurement = timestamp + MEASUREMENT_INTERVAL;
 
@@ -121,6 +125,18 @@ void loop() {
     }
 
     free(fileName);
+  }
+
+  //check if new ble request received
+  if(bleData.data != NULL) {
+    
+    //TODO remove logging bellow
+    Serial.print("Received:");
+    for(int i = 0; i < bleData.size; i++) {
+      Serial.print(bleData.data[i], HEX);
+    }
+    Serial.println("");
+    
   }
 }
 
