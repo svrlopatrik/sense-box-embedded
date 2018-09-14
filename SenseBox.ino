@@ -270,7 +270,9 @@ void sendListOfFiles() {
         // continue
       } else {
         //send file name
-        writeDataToBle(file.name(), strlen(file.name()));
+        char extractedName[8];
+        memcpy(extractedName, &file.name()[0], 8);
+        writeDataToBle(extractedName, 8);
       }
       file.close();
     }
