@@ -292,10 +292,18 @@ void sendListOfFiles() {
       } else if (file.isDirectory()) {
         // continue
       } else {
-        //send file name
+        //extract file name without extension
         char extractedName[8];
         memcpy(extractedName, &file.name()[0], 8);
-        writeDataToBle(extractedName, 8);
+
+        //prepare packet in form name(4 bytes) + size(4 bytes)
+        long name = atol(extractedName);
+        long size = file.size();
+        byte packet[sizeof(name) + sizeof(size)];
+        memcpy(packet, &name, sizeof(name));
+        memcpy(packet + sizeof(name), &size, sizeof(size));
+        
+        writeDataToBle(packet, sizeof(name) + sizeof(size));
       }
       file.close();
     }
