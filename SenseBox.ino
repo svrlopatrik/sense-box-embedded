@@ -26,6 +26,8 @@ const long SLEEP_INTERVAL         = 5*60;
 #define RESPONSE_FLAG_TEMPERATURE   0x01
 #define RESPONSE_FLAG_HUMIDITY      0x02
 #define RESPONSE_FLAG_END           "END"
+#define RESPONSE_FLAG_UDEF          "UDEF"
+#define RESPONSE_FLAG_AT            0x2B   //each at command response start with '+' character
 
 //other constants
 #define TYPE_DHT DHT22
@@ -129,25 +131,12 @@ void loop() {
 
   //check if new ble request received
   if(bleData.data != NULL) {
-    
     //TODO remove logging bellow
     Serial.print("Received:");
     for(int i = 0; i < bleData.size; i++) {
       Serial.print(bleData.data[i], HEX);
     }
     Serial.println("");
-    
-  }
-}
-
-/*
- * Handler of incomming data from ble serial RX.
- */
-void serialEvent1() {
-  struct BleData bleData = readDataFromBle();
-  if(bleData.size) {
-    isSleeping = false;
-    lastCommunication = getTimestamp() + SLEEP_INTERVAL;
 
     switch(bleData.data[0]) {
       case REQUEST_CODE_ACTUAL:
@@ -156,16 +145,34 @@ void serialEvent1() {
       case REQUEST_CODE_LIST:
         sendListOfFiles();
         break;
-       case REQUEST_CODE_HISTORY:
+      case REQUEST_CODE_HISTORY:
         if (bleData.size == 5) { //request code + date(4 bytes)
           char date[8 + strlen(FILE_EXTENSION)];  //e.g. 20180908.DAT -> 08.Sept.2018
           sprintf(date, "%ld%s", *(long*)(bleData.data + 1), FILE_EXTENSION);
           sendHistory(date);
         }
         break;
+      case RESPONSE_FLAG_AT:
+        //ignore
+        break;
+      default:
+        writeDataToBle(RESPONSE_FLAG_UDEF, strlen(RESPONSE_FLAG_UDEF));
+        break;
     }
     
     free(bleData.data);
+    bleData.data = NULL;
+  }
+}
+
+/*
+ * Handler of incomming data from ble serial RX.
+ */
+void serialEvent1() {
+  bleData = readDataFromBle();
+  if(bleData.size) {
+    isSleeping = false;
+    lastCommunication = getTimestamp() + SLEEP_INTERVAL;
   }
 }
 
@@ -342,7 +349,7 @@ BleData readDataFromBle() {
     int size = 0;
     while (size < 50 && Serial1.available()) {
       data[size++] = Serial1.read();
-      delay(10);  //ble module sends data one by one so wait is neccessary to get them as array
+      delay(50);  //ble module sends data one by one so wait is neccessary to get them as array
     }
 
     data = (byte*) realloc(data, size * sizeof(byte));
