@@ -61,6 +61,7 @@ void sendHistory(char*);
 BleData readDataFromBle();
 void writeDataToBle(byte*, int);
 void enterBleSleepMode();
+void printByteArrayInHex();
 
 /*
  * Initial setup.
@@ -131,13 +132,6 @@ void loop() {
 
   //check if new ble request received
   if(bleData.data != NULL) {
-    //TODO remove logging bellow
-    Serial.print("Received:");
-    for(int i = 0; i < bleData.size; i++) {
-      Serial.print(bleData.data[i], HEX);
-    }
-    Serial.println("");
-
     switch(bleData.data[0]) {
       case REQUEST_CODE_ACTUAL:
         sendActualData();
@@ -361,8 +355,13 @@ BleData readDataFromBle() {
     }
 
     data = (byte*) realloc(data, size * sizeof(byte));
+    
+    Serial.print("Received data:");
+    printByteArrayInHex(data, size);
+    
     return BleData{size, data};
   }
+  Serial.println("Received data: null");
   return BleData{0, NULL};
 }
 
@@ -372,6 +371,8 @@ BleData readDataFromBle() {
 void writeDataToBle(byte* data, int size) {
   Serial1.write(data, size);
   delay(50);
+  Serial.print("Sent data:");
+  printByteArrayInHex(data, size);
 }
 
 /**
@@ -380,5 +381,13 @@ void writeDataToBle(byte* data, int size) {
 void enterBleSleepMode() {
   Serial1.write(AT_SLEEP, strlen(AT_SLEEP));
   isSleeping = true;
+}
+
+void printByteArrayInHex(byte* data, int size) {
+  for(int i = 0 ; i < size; i++) {
+    Serial.print(" ");
+    Serial.print(data[i], HEX);
+  }
+  Serial.println();
 }
 
